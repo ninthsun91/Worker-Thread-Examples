@@ -7,7 +7,7 @@ import { Worker } from 'node:worker_threads';
 import { WorkerAsyncJob } from './async-hook';
 
 class WorkerPool extends EventEmitter {
-  private readonly workerPath = path.join(__dirname, './worker.js');
+  private readonly WORKER_PATH = path.join(__dirname, 'worker.js');
   private readonly MINIMUM_WORKERS = 2;
   private readonly MAXIMUM_WORKERS = 5;
   private readonly WORKER_TIMEOUT = 1000 * 300;
@@ -41,16 +41,16 @@ class WorkerPool extends EventEmitter {
   }
 
   private createWorker() {
-    const worker = new Worker(this.workerPath);
+    const worker = new Worker(this.WORKER_PATH);
     this.workerPool.add(worker);
     this.freePool.push(worker);
 
     worker.on('message', (result: JobResult) => {
       const asyncResource = this.asyncResourceMap.get(worker);
-      if (asyncResource === undefined) return;
-
-      asyncResource.done(null, result);
-      this.emit(result.jobId);
+      if (asyncResource !== undefined) {
+        asyncResource.done(null, result);
+        this.emit(result.jobId);
+      }
       
       if (this.jobQueue.length > 0) {
         this.freePool.push(worker);
